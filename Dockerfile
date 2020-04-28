@@ -105,6 +105,7 @@ RUN curl --fail --location https://deb.nodesource.com/setup_10.x | bash - \
            libsasl2-2 \
            libsasl2-dev \
            libsasl2-modules \
+           libsnappy-dev \
            libssl-dev \
            locales  \
            lsb-release \
@@ -178,15 +179,20 @@ ENV AIRFLOW_INSTALL_VERSION=${AIRFLOW_INSTALL_VERSION}
 ARG CONSTRAINT_REQUIREMENTS="requirements/requirements-python${PYTHON_MAJOR_MINOR_VERSION}.txt"
 ENV CONSTRAINT_REQUIREMENTS=${CONSTRAINT_REQUIREMENTS}
 
+ARG ADDITIONAL_PYTHON_DEPS="requirements.txt"
+ENV ADDITIONAL_PYTHON_DEPS=${ADDITIONAL_PYTHON_DEPS}
+
 WORKDIR /opt/airflow
 
 # hadolint ignore=DL3020
-ADD "${CONSTRAINT_REQUIREMENTS}" /requirements.txt
+ADD "${ADDITIONAL_PYTHON_DEPS}" /requirements.txt
+ADD "${CONSTRAINT_REQUIREMENTS}" /constraints.txt
 
 ENV PATH=${PATH}:/root/.local/bin
 
 RUN pip install --user "${AIRFLOW_INSTALL_SOURCES}[${AIRFLOW_EXTRAS}]${AIRFLOW_INSTALL_VERSION}" \
-    --constraint /requirements.txt && \
+    --constraint /constraints.txt && \
+    pip install --user -r /requirements.txt && \
     find /root/.local/ -name '*.pyc' -print0 | xargs -0 rm -r && \
     find /root/.local/ -type d -name '__pycache__' -print0 | xargs -0 rm -r
 
