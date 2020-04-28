@@ -84,6 +84,10 @@ function verify_db_connection {
 : "${REDIS_HOST:="redis"}"
 : "${REDIS_PORT:="6379"}"
 
+#Postgres
+: "${POSTGRES_HOST:="postgres"}"
+: "${POSTGRES_PORT:="5432"}"
+
 #RBAC webserver
 : "${ADMIN_USER:="airflow"}"
 : "${ADMIN_EMAIL:="airflow@example.com"}"
@@ -118,7 +122,8 @@ fi
 
 if [[ ${AIRFLOW_COMMAND} == "webserver" ]]; then
     echo "Creating webserver admin user"
-    sleep 5
+    airflow upgradedb
+    sleep 10
     airflow create_user -r Admin \
                         -u $ADMIN_USER \
                         -e $ADMIN_EMAIL \
