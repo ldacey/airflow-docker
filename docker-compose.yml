@@ -9,12 +9,15 @@ networks:
 
 volumes:
   pgdata: {}
+  logs: {}
 
 x-database-env: 
   &database-env
   POSTGRES_USER: airflow
   POSTGRES_DB: airflow
   POSTGRES_PASSWORD: airflow
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: 5432
 
 x-airflow-env: 
   &airflow-env
@@ -27,6 +30,8 @@ x-airflow-env:
   AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
   AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS: 'False'
   AIRFLOW__SCHEDULER__SCHEDULER_HEARTBEAT_SEC: 10
+  ADMIN_USER: airflow
+  ADMIN_PASSWORD: airflow
 
 services:
   postgres:
@@ -38,7 +43,6 @@ services:
       - 5432:5432
     volumes:
       - pgdata:/var/lib/postgresql/data/pgdata
-      - /var/run/docker.sock:/var/run/docker.sock
     command: >
      postgres
        -c listen_addresses=*
@@ -59,31 +63,16 @@ services:
       - airflow
 
   webserver:
-    image: airflow:1.10.10
-    build:
-      context: .
-      args:
-        PYTHON_BASE_IMAGE: "python:3.7-slim-buster"
-        PYTHON_MAJOR_MINOR_VERSION: 3.7
-        AIRFLOW_INSTALL_SOURCES: "apache-airflow"
-        AIRFLOW_INSTALL_VERSION: "==1.10.10"
-        AIRFLOW_EXTRAS: "async,aws,azure,celery,dask,gcp,jdbc,mysql,postgres,redis,slack,ssh,statsd,virtualenv"
-        CONSTRAINT_REQUIREMENTS: "./requirements.txt"
-        ENTRYPOINT_FILE: "./entrypoint.sh"
-        AIRFLOW_SOURCES_FROM: "./entrypoint.sh"
-        AIRFLOW_SOURCES_TO: "/entrypoint"
+    image: airflow:development
     ports:
       - 8080:8080
     volumes:
       - ./dags:/opt/airflow/dags
       - ./plugins:/opt/airflow/plugins
-      - ./logs:/opt/airflow/logs
-      - /var/run/docker.sock:/var/run/docker.sock
+      - logs:/opt/airflow/logs
     environment:
       <<: *database-env
       <<: *airflow-env
-      ADMIN_USER: airflow
-      ADMIN_PASSWORD: airflow
     depends_on:
       - postgres
       - redis
@@ -97,78 +86,45 @@ services:
       - airflow
 
   flower:
-    image: airflow:1.10.10
-    build:
-      context: .
-      args:
-        PYTHON_BASE_IMAGE: "python:3.7-slim-buster"
-        PYTHON_MAJOR_MINOR_VERSION: 3.7
-        AIRFLOW_INSTALL_SOURCES: "apache-airflow"
-        AIRFLOW_INSTALL_VERSION: "==1.10.10"
-        AIRFLOW_EXTRAS: "async,aws,azure,celery,dask,gcp,jdbc,mysql,postgres,redis,slack,ssh,statsd,virtualenv"
-        CONSTRAINT_REQUIREMENTS: "./requirements.txt"
-        ENTRYPOINT_FILE: "./entrypoint.sh"
-        AIRFLOW_SOURCES_FROM: "./entrypoint.sh"
-        AIRFLOW_SOURCES_TO: "/entrypoint"
+    image: airflow:development
     ports:
       - 5555:5555
-    depends_on:
-      - redis
+    environment:
+      <<: *database-env
     volumes:
       - ./dags:/opt/airflow/dags
       - ./plugins:/opt/airflow/plugins
-      - ./logs:/opt/airflow/logs
-      - /var/run/docker.sock:/var/run/docker.sock
+      - logs:/opt/airflow/logs
     command: flower
+    depends_on:
+      - redis
     networks:
       - airflow
 
   scheduler:
-    image: airflow:1.10.10
-    build:
-      context: .
-      args:
-        PYTHON_BASE_IMAGE: "python:3.7-slim-buster"
-        PYTHON_MAJOR_MINOR_VERSION: 3.7
-        AIRFLOW_INSTALL_SOURCES: "apache-airflow"
-        AIRFLOW_INSTALL_VERSION: "==1.10.10"
-        AIRFLOW_EXTRAS: "async,aws,azure,celery,dask,gcp,jdbc,mysql,postgres,redis,slack,ssh,statsd,virtualenv"
-        CONSTRAINT_REQUIREMENTS: "./requirements.txt"
-        ENTRYPOINT_FILE: "./entrypoint.sh"
-        AIRFLOW_SOURCES_FROM: "./entrypoint.sh"
-        AIRFLOW_SOURCES_TO: "/entrypoint"
+    image: airflow:development
     volumes:
       - ./dags:/opt/airflow/dags
       - ./plugins:/opt/airflow/plugins
-      - ./logs:/opt/airflow/logs
-      - /var/run/docker.sock:/var/run/docker.sock
+      - logs:/opt/airflow/logs
     environment:
       <<: *database-env
+      <<: *airflow-env
     command: scheduler
+    depends_on:
+      - postgres
     networks:
       - airflow
 
   worker:
-    image: airflow:1.10.10
-    build:
-      context: .
-      args:
-        PYTHON_BASE_IMAGE: "python:3.7-slim-buster"
-        PYTHON_MAJOR_MINOR_VERSION: 3.7
-        AIRFLOW_INSTALL_SOURCES: "apache-airflow"
-        AIRFLOW_INSTALL_VERSION: "==1.10.10"
-        AIRFLOW_EXTRAS: "async,aws,azure,celery,dask,gcp,jdbc,mysql,postgres,redis,slack,ssh,statsd,virtualenv"
-        CONSTRAINT_REQUIREMENTS: "./requirements.txt"
-        ENTRYPOINT_FILE: "./entrypoint.sh"
-        AIRFLOW_SOURCES_FROM: "./entrypoint.sh"
-        AIRFLOW_SOURCES_TO: "/entrypoint"
+    image: airflow:development
     volumes:
       - ./dags:/opt/airflow/dags
       - ./plugins:/opt/airflow/plugins
-      - ./logs:/opt/airflow/logs
-      - /var/run/docker.sock:/var/run/docker.sock
+      - logs:/opt/airflow/logs
     environment:
       <<: *database-env
+      <<: *airflow-env
     command: worker
     depends_on:
       - scheduler
