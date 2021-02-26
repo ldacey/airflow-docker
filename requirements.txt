@@ -4,6 +4,6 @@ smartsheet-python-sdk==2.86.0
 bulwark==0.5.3
 sqlalchemy-redshift==0.7.7
 python-snappy==0.5.4
-aiohttp==3.6.2
+aiohttp==3.7.4
 pandas==1.0.3
 pyarrow==0.17.0
